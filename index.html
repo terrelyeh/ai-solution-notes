@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Solution Notes</title>
+  <style>
+    :root {
+      --ink: #17201c;
+      --muted: #5d6b61;
+      --line: #d9e7de;
+      --paper: #ffffff;
+      --soft: #f4f9f6;
+      --green: #06c755;
+      --green-deep: #0a8f47;
+      --shadow: 0 16px 48px rgba(19, 52, 35, .1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #eef8f2, #ffffff 360px);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 72px 0 44px;
+    }
+
+    .eyebrow {
+      color: var(--green-deep);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 16px;
+      font-size: clamp(42px, 7vw, 86px);
+      line-height: .98;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 19px;
+      line-height: 1.75;
+      text-wrap: pretty;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin: 34px 0 18px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 42px);
+      letter-spacing: 0;
+    }
+
+    .repo-note {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      padding-bottom: 72px;
+    }
+
+    .report-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 260px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .report-art {
+      min-height: 126px;
+      background:
+        radial-gradient(circle at 26% 18%, rgba(6, 199, 85, .24), transparent 30%),
+        linear-gradient(135deg, #f8fcf9, #e7f6ec);
+      border-bottom: 1px solid var(--line);
+      position: relative;
+    }
+
+    .report-art::before,
+    .report-art::after {
+      content: "";
+      position: absolute;
+      border: 1px solid rgba(10, 143, 71, .25);
+      background: rgba(255,255,255,.7);
+      border-radius: 8px;
+    }
+
+    .report-art::before {
+      width: 180px;
+      height: 58px;
+      left: 26px;
+      top: 34px;
+    }
+
+    .report-art::after {
+      width: 124px;
+      height: 78px;
+      right: 28px;
+      top: 24px;
+    }
+
+    .report-body {
+      padding: 20px;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    .tag {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: 8px;
+      background: #e9f8ee;
+      color: var(--green-deep);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    h3 {
+      margin: 14px 0 8px;
+      font-size: 23px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .report-body p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 15px;
+      text-wrap: pretty;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 20px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 13px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .button.primary {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        width: min(100% - 28px, 1120px);
+      }
+
+      header {
+        padding-top: 48px;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .repo-note {
+        margin-top: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <div class="eyebrow">Research Reports / Architecture Briefs</div>
+    <h1>AI Solution Notes</h1>
+    <p class="lead">
+      A collection of AI-assisted technical research notes, architecture explainers, and implementation specs. Each report includes a web page for human communication and a Markdown spec for AI coding agents or engineering follow-up.
+    </p>
+  </header>
+
+  <main class="wrap">
+    <div class="section-head">
+      <h2>Reports</h2>
+      <div class="repo-note">One repo, many reusable technical briefs.</div>
+    </div>
+
+    <section class="report-grid" aria-label="Reports">
+      <article class="report-card">
+        <div class="report-art" aria-hidden="true"></div>
+        <div class="report-body">
+          <span class="tag">Agentic Workflow</span>
+          <h3>LINE OA Agentic Workflow</h3>
+          <p>
+            LINE Official Account as an AI customer-service entry point, with RAG, agent team routing, transaction tools, human handoff, ticket management, audit logs, and UX speed guidelines.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="./reports/line-oa-agentic-workflow/">Open report</a>
+            <a class="button" href="./reports/line-oa-agentic-workflow/spec.md">Spec.md</a>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
+

@@ -1,0 +1,1605 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LINE OA Agentic Workflow 架構說明</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306c755'/%3E%3Cpath d='M9 16.5l4.2 4.2L23.5 10.4' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ink: #18201c;
+      --muted: #5d6b61;
+      --line: #d7e3db;
+      --soft: #f5f9f6;
+      --paper: #ffffff;
+      --green: #06c755;
+      --green-deep: #0a8f47;
+      --teal: #047c72;
+      --amber: #b66a12;
+      --red: #bd3e37;
+      --blue: #2f6fd6;
+      --shadow: 0 16px 48px rgba(19, 52, 35, .11);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(241, 248, 244, .9), rgba(255,255,255,0) 420px),
+        #fbfdfb;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      min-height: 100vh;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(215, 227, 219, .85);
+      background: rgba(251, 253, 251, .88);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-inner {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--green), #8ee8ae);
+      box-shadow: inset 0 -8px 14px rgba(0, 85, 34, .16);
+      position: relative;
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      border: 2px solid #fff;
+      border-left: 0;
+      border-top: 0;
+      transform: rotate(45deg);
+      left: 10px;
+      top: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .nav-links a {
+      padding: 8px 10px;
+      border-radius: 8px;
+    }
+
+    .nav-links a:hover {
+      background: #edf6f0;
+      color: var(--green-deep);
+    }
+
+    .hero {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 70px 0 48px;
+      display: grid;
+      grid-template-columns: minmax(0, .86fr) minmax(420px, 1.14fr);
+      gap: 42px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green-deep);
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .pulse {
+      width: 9px;
+      height: 9px;
+      border-radius: 99px;
+      background: var(--green);
+      box-shadow: 0 0 0 7px rgba(6, 199, 85, .13);
+    }
+
+    h1 {
+      margin: 18px 0 18px;
+      font-size: clamp(42px, 6vw, 82px);
+      line-height: .98;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 19px;
+      line-height: 1.75;
+      max-width: 650px;
+      text-wrap: pretty;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-weight: 800;
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 8px 24px rgba(34, 58, 44, .07);
+    }
+
+    .button.primary {
+      border-color: var(--green);
+      background: var(--green);
+      color: white;
+      box-shadow: 0 12px 30px rgba(6, 199, 85, .25);
+    }
+
+    .hero-media {
+      position: relative;
+      min-height: 430px;
+    }
+
+    .hero-image {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      display: block;
+      border-radius: 8px;
+      border: 1px solid #d9e8de;
+      box-shadow: var(--shadow);
+    }
+
+    .summary-strip {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: -28px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(215, 227, 219, .9);
+      border-radius: 8px;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 40px rgba(20, 44, 29, .12);
+    }
+
+    .summary-item {
+      padding: 12px;
+      border-radius: 8px;
+      background: #f7fbf8;
+      min-width: 0;
+    }
+
+    .summary-item b {
+      display: block;
+      font-size: 18px;
+      color: var(--green-deep);
+    }
+
+    .summary-item span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .section {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 72px 0;
+    }
+
+    .section-header {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(320px, .7fr);
+      gap: 32px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    .section-kicker {
+      margin: 0 0 10px;
+      color: var(--green-deep);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.08;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .section-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.8;
+      text-wrap: pretty;
+    }
+
+    .flow-board {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      overflow: hidden;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: 1fr 44px 1.15fr 44px 1fr;
+      align-items: stretch;
+      gap: 14px;
+    }
+
+    .lane {
+      min-height: 278px;
+      border: 1px solid #dce8df;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffffff, #f7fbf8);
+      padding: 18px;
+      position: relative;
+    }
+
+    .lane-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-weight: 900;
+    }
+
+    .lane-index {
+      width: 28px;
+      height: 28px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #e6f7ec;
+      color: var(--green-deep);
+      font-size: 13px;
+    }
+
+    .node {
+      border: 1px solid #dce7de;
+      border-radius: 8px;
+      background: white;
+      padding: 13px;
+      margin-top: 10px;
+      min-height: 58px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 8px 18px rgba(35, 58, 43, .05);
+    }
+
+    .node strong {
+      font-size: 15px;
+    }
+
+    .node span {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      color: var(--green-deep);
+      font-weight: 900;
+      font-size: 28px;
+    }
+
+    .agent-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .agent-node {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      border: 1px solid #dce7de;
+      border-radius: 8px;
+      background: white;
+      padding: 12px;
+    }
+
+    .glyph {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      color: white;
+    }
+
+    .glyph.supervisor { background: var(--green-deep); }
+    .glyph.knowledge { background: var(--blue); }
+    .glyph.action { background: var(--amber); }
+
+    .agent-node strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .agent-node span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-top: 3px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(28, 55, 39, .07);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: 8px;
+      background: #eef7f1;
+      color: var(--green-deep);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 15px;
+      text-wrap: pretty;
+    }
+
+    .list {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .list li {
+      position: relative;
+      padding-left: 18px;
+      color: #344138;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .list li::before {
+      content: "";
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      background: var(--green);
+      left: 0;
+      top: .55em;
+    }
+
+    .split-band {
+      background: #eef7f1;
+      border-top: 1px solid #d9e8de;
+      border-bottom: 1px solid #d9e8de;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .compare-panel {
+      border: 1px solid #d2e2d8;
+      border-radius: 8px;
+      background: white;
+      padding: 24px;
+    }
+
+    .compare-panel h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 99px;
+      background: var(--green);
+      flex: 0 0 auto;
+    }
+
+    .dot.warn {
+      background: var(--amber);
+    }
+
+    .decision-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 8px;
+      background: white;
+      box-shadow: var(--shadow);
+    }
+
+    .decision-table th,
+    .decision-table td {
+      padding: 16px;
+      border-bottom: 1px solid #dfe9e2;
+      vertical-align: top;
+      text-align: left;
+      line-height: 1.55;
+    }
+
+    .decision-table th {
+      background: #163c28;
+      color: white;
+      font-size: 14px;
+    }
+
+    .decision-table td {
+      color: #344138;
+      background: white;
+      font-size: 14px;
+    }
+
+    .decision-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .handoff-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .handoff-flow,
+    .agent-console,
+    .audit-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 10px 30px rgba(28, 55, 39, .07);
+    }
+
+    .handoff-flow {
+      padding: 24px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .handoff-step {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 13px;
+      align-items: start;
+      padding: 14px;
+      border: 1px solid #deebe3;
+      border-radius: 8px;
+      background: #fbfdfb;
+    }
+
+    .handoff-step-number {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #e5f7eb;
+      color: var(--green-deep);
+      font-weight: 900;
+    }
+
+    .handoff-step h3 {
+      margin-bottom: 5px;
+      font-size: 17px;
+    }
+
+    .handoff-step p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .agent-console {
+      padding: 20px;
+      background: linear-gradient(180deg, #ffffff, #f5faf7);
+    }
+
+    .console-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #dfe9e2;
+      margin-bottom: 14px;
+    }
+
+    .console-header h3 {
+      font-size: 18px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: white;
+      background: var(--amber);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .console-row {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid #e4eee7;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .console-row:last-child {
+      border-bottom: 0;
+    }
+
+    .console-row span:first-child {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .audit-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+    }
+
+    .audit-panel {
+      padding: 22px;
+    }
+
+    .audit-panel h3 {
+      margin-bottom: 10px;
+    }
+
+    .audit-panel p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .audit-event {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 12px;
+      padding: 13px 0;
+      border-bottom: 1px solid #e3ede6;
+    }
+
+    .audit-event:last-child {
+      border-bottom: 0;
+    }
+
+    .audit-time {
+      color: var(--green-deep);
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .audit-event strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 3px;
+    }
+
+    .audit-event span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .phase {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+      min-height: 220px;
+    }
+
+    .phase::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      height: 5px;
+      background: var(--green);
+    }
+
+    .phase small {
+      display: inline-block;
+      color: var(--green-deep);
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+
+    .phase h3 {
+      font-size: 19px;
+      margin-bottom: 10px;
+    }
+
+    .phase p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .guardrails {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .rule-box {
+      border: 1px solid #d8e5dc;
+      border-radius: 8px;
+      background: white;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(28, 55, 39, .06);
+    }
+
+    .rule {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #e5eee8;
+    }
+
+    .rule:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .rule:first-child {
+      padding-top: 0;
+    }
+
+    .rule-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: var(--green-deep);
+      font-weight: 900;
+    }
+
+    .rule h3 {
+      margin-bottom: 5px;
+      font-size: 17px;
+    }
+
+    .rule p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .code-block {
+      margin: 0;
+      height: 100%;
+      border-radius: 8px;
+      border: 1px solid #173d2a;
+      background: #112a1d;
+      color: #d7f5df;
+      padding: 22px;
+      overflow: auto;
+      font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+    }
+
+    .appendix-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .appendix-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(28, 55, 39, .07);
+    }
+
+    .appendix-card h3 {
+      margin-bottom: 10px;
+    }
+
+    .appendix-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 15px;
+      text-wrap: pretty;
+    }
+
+    .experience-flow {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .experience-step {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid #deebe3;
+      border-radius: 8px;
+      background: #fbfdfb;
+    }
+
+    .experience-time {
+      color: var(--green-deep);
+      font-weight: 900;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .experience-step strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 3px;
+    }
+
+    .experience-step span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .mini-table {
+      width: 100%;
+      margin-top: 18px;
+      border-collapse: collapse;
+      border: 1px solid #deebe3;
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    .mini-table th,
+    .mini-table td {
+      padding: 12px;
+      border-bottom: 1px solid #deebe3;
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .mini-table th {
+      background: #eef7f1;
+      color: var(--green-deep);
+      font-weight: 900;
+    }
+
+    .mini-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .cta {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto 72px;
+      border: 1px solid #bddfc9;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(6, 199, 85, .16), transparent 28%),
+        linear-gradient(135deg, #ffffff, #eff9f2);
+      padding: 34px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .cta h2 {
+      font-size: clamp(26px, 4vw, 42px);
+      margin-bottom: 10px;
+    }
+
+    .cta p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .section-header,
+      .guardrails,
+      .handoff-layout,
+      .audit-layout,
+      .appendix-grid,
+      .cta {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 42px;
+      }
+
+      .hero-media {
+        min-height: auto;
+        padding-bottom: 44px;
+      }
+
+      .flow-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        transform: rotate(90deg);
+        min-height: 30px;
+      }
+
+      .grid-3,
+      .timeline,
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .nav-inner,
+      .hero,
+      .section,
+      .cta {
+        width: min(100% - 28px, 1180px);
+      }
+
+      .hero {
+        padding-bottom: 28px;
+      }
+
+      .summary-strip {
+        position: static;
+        margin-top: 12px;
+        grid-template-columns: 1fr;
+      }
+
+      .flow-board {
+        padding: 16px;
+      }
+
+      .decision-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .console-row,
+      .audit-event,
+      .experience-step {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+
+      .cta {
+        margin-bottom: 40px;
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="nav" aria-label="頁面導覽">
+      <div class="nav-inner">
+        <a class="brand" href="#top" aria-label="回到頁首">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>LINE OA Agentic Workflow</span>
+        </a>
+        <div class="nav-links">
+          <a href="#flow">流程</a>
+          <a href="#agents">Agent Team</a>
+          <a href="#routing">Routing</a>
+          <a href="#handoff">Handoff</a>
+          <a href="#roadmap">Roadmap</a>
+          <a href="#guardrails">風險控管</a>
+          <a href="#appendix">附錄</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero" id="top">
+      <div>
+        <span class="eyebrow"><span class="pulse" aria-hidden="true"></span>LINE OA + Agentic Workflow</span>
+        <h1>讓 LINE 客服從「回答問題」進化到「完成任務」</h1>
+        <p class="lead">
+          這個架構把 LINE Official Account 當成客戶入口，由後端 Orchestrator 管理對話狀態、RAG 知識查詢、交易工具、預約流程與真人接手。LLM 負責理解自然語言，真正的操作則由受控的 tools 執行。
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#flow">查看完整流程</a>
+          <a class="button" href="#roadmap">建置順序</a>
+        </div>
+      </div>
+
+      <div class="hero-media">
+        <img class="hero-image" src="./assets/hero.png" alt="LINE OA 訊息、三個 AI agent、文件、購物車、預約與客服後台的架構示意圖">
+        <div class="summary-strip" aria-label="架構摘要">
+          <div class="summary-item">
+            <b>3 Agents</b>
+            <span>Supervisor、Knowledge、Transaction 分工</span>
+          </div>
+          <div class="summary-item">
+            <b>5 Tools</b>
+            <span>RAG、商品、購物車、預約、ticket</span>
+          </div>
+          <div class="summary-item">
+            <b>1 Gate</b>
+            <span>高風險操作必須先確認</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section" id="flow">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Core Architecture</p>
+          <h2>不是讓 AI 自由操作，而是讓 AI 在流程裡做判斷</h2>
+        </div>
+        <p>
+          最穩的方式是讓 Orchestrator 掌握狀態與規則：AI 可以理解問題、選擇工具、整理回覆；但加入購物車、建立預約、購票或轉真人，都必須經過後端 workflow。
+        </p>
+      </div>
+
+      <div class="flow-board">
+        <div class="flow-grid" role="img" aria-label="LINE OA Agentic Workflow 從客戶訊息到工具執行再回覆的流程圖">
+          <div class="lane">
+            <div class="lane-title"><span class="lane-index">1</span>客戶入口</div>
+            <div class="node">
+              <strong>LINE Official Account</strong>
+              <span>接收客戶訊息，透過 Messaging API webhook 送到後端。</span>
+            </div>
+            <div class="node">
+              <strong>Webhook Backend</strong>
+              <span>驗證 signature、記錄 message、載入 conversation state。</span>
+            </div>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="lane">
+            <div class="lane-title"><span class="lane-index">2</span>Agent Team</div>
+            <div class="agent-stack">
+              <div class="agent-node">
+                <div class="glyph supervisor">S</div>
+                <div><strong>Supervisor Agent</strong><span>判斷 intent、routing、缺少資訊與是否轉真人。</span></div>
+              </div>
+              <div class="agent-node">
+                <div class="glyph knowledge">K</div>
+                <div><strong>Knowledge Agent</strong><span>查 SOP、FAQ、規範、產品文件，產生有依據的回答。</span></div>
+              </div>
+              <div class="agent-node">
+                <div class="glyph action">T</div>
+                <div><strong>Transaction Agent</strong><span>呼叫購物車、預約、票務、訂單等受控 tools。</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="lane">
+            <div class="lane-title"><span class="lane-index">3</span>受控執行</div>
+            <div class="node">
+              <strong>Tools / APIs</strong>
+              <span>查庫存、加入購物車、查時段、建立 ticket。</span>
+            </div>
+            <div class="node">
+              <strong>Confirmation Gate</strong>
+              <span>會改變狀態或花錢的操作，必須先取得客戶明確確認。</span>
+            </div>
+            <div class="node">
+              <strong>LINE Reply API</strong>
+              <span>回覆客戶結果，並保留 audit log。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="agents">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Agent Team</p>
+          <h2>三個 Agent 的邊界要清楚，系統才不會失控</h2>
+        </div>
+        <p>
+          真正可靠的 agent team 不是每個 agent 都什麼都能做，而是每個角色只負責自己的判斷範圍，並且只能使用被允許的 tools。
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <article class="card">
+          <div class="card-top">
+            <h3>Supervisor Agent</h3>
+            <span class="badge">總控</span>
+          </div>
+          <p>負責理解客戶意圖、選擇流程、管理 conversation state，並判斷是否要追問、轉真人或交給其他 agent。</p>
+          <ul class="list">
+            <li>判斷 `faq_question`、`add_to_cart`、`booking`、`human_handoff`</li>
+            <li>管理目前步驟：收集資訊、等待確認、執行、完成</li>
+            <li>高風險或低信心時停止自動回答</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="card-top">
+            <h3>Knowledge Agent</h3>
+            <span class="badge">RAG</span>
+          </div>
+          <p>只負責查已核准的內部文件，例如 SOP、產品規格、FAQ、政策與規範，並回傳可引用的答案依據。</p>
+          <ul class="list">
+            <li>用 metadata route 到正確文件集合</li>
+            <li>找不到資料時回報 `insufficient_context`</li>
+            <li>避免憑空承諾退款、保固、價格或法律條款</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="card-top">
+            <h3>Transaction Agent</h3>
+            <span class="badge">Action</span>
+          </div>
+          <p>負責呼叫實際業務工具，例如商品查詢、加入購物車、預約球場、保留票券與建立訂單。</p>
+          <ul class="list">
+            <li>只能呼叫明確定義的 backend tools</li>
+            <li>任何狀態變更都要通過 confirmation gate</li>
+            <li>工具失敗或付款相關問題轉真人</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="split-band" id="routing">
+      <div class="section">
+        <div class="section-header">
+          <div>
+            <p class="section-kicker">Routing Strategy</p>
+            <h2>把「問答」和「動作」分開，讓每條路徑都有規則</h2>
+          </div>
+          <p>
+            Agentic workflow 最容易出問題的地方，是把所有訊息都丟給同一個模型自由處理。比較穩的做法是 hard rules 優先，再用 LLM classifier 判斷 intent。
+          </p>
+        </div>
+
+        <table class="decision-table">
+          <thead>
+            <tr>
+              <th>客戶意圖</th>
+              <th>Routing</th>
+              <th>需要的工具</th>
+              <th>確認規則</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>詢問 SOP、FAQ、產品規格</td>
+              <td>Knowledge Agent</td>
+              <td>RAG search、document citation</td>
+              <td>不需要確認，但要標記資料來源</td>
+            </tr>
+            <tr>
+              <td>查商品、規格、庫存、價格</td>
+              <td>Transaction Agent</td>
+              <td>product search、inventory API</td>
+              <td>只查詢不需確認</td>
+            </tr>
+            <tr>
+              <td>加入購物車、建立預約、保留票券</td>
+              <td>Transaction Agent + Workflow</td>
+              <td>cart API、booking API、ticket API</td>
+              <td>執行前必須回 LINE 要求明確確認</td>
+            </tr>
+            <tr>
+              <td>付款、退款、取消訂單、客訴</td>
+              <td>Human Handoff</td>
+              <td>ticket、notification、agent dashboard</td>
+              <td>預設轉真人，不讓 AI 自行決定</td>
+            </tr>
+            <tr>
+              <td>問題不清楚或連續失敗</td>
+              <td>Supervisor Agent</td>
+              <td>clarifying question、conversation state</td>
+              <td>最多追問 1 到 2 次，再轉真人</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="handoff">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Human Handoff & Audit</p>
+          <h2>真人接手不是把客服拉進 LINE，而是把對話切到受控客服流程</h2>
+        </div>
+        <p>
+          客戶端仍然只看到 LINE OA。內部則由系統建立 ticket、通知客服、把 conversation 狀態改成人工接手，並停止 AI 自動回覆。Audit log 則放在後台的稽核紀錄，用來還原「AI 為什麼這樣判斷、誰接手、哪個工具被執行」。
+        </p>
+      </div>
+
+      <div class="handoff-layout">
+        <div class="handoff-flow" aria-label="真人客服人工接手流程">
+          <div class="handoff-step">
+            <div class="handoff-step-number">1</div>
+            <div>
+              <h3>觸發轉真人</h3>
+              <p>Supervisor 偵測到退款、客訴、法律、合約、付款失敗、低信心回答，或客戶要求「我要找真人」。</p>
+            </div>
+          </div>
+          <div class="handoff-step">
+            <div class="handoff-step-number">2</div>
+            <div>
+              <h3>先回覆客戶</h3>
+              <p>LINE OA 回：「這個問題我幫你轉給客服專員，請稍候。」讓客戶知道 AI 已停止自行處理。</p>
+            </div>
+          </div>
+          <div class="handoff-step">
+            <div class="handoff-step-number">3</div>
+            <div>
+              <h3>建立 ticket 並指派</h3>
+              <p>系統建立客服案件，附上對話摘要、轉接原因、建議部門、客戶資訊與 AI 已查過的文件。</p>
+            </div>
+          </div>
+          <div class="handoff-step">
+            <div class="handoff-step-number">4</div>
+            <div>
+              <h3>AI 暫停自動回覆</h3>
+              <p>`conversation.status` 從 `ai_active` 改成 `human_pending` 或 `human_active`，後續訊息只通知客服，不再讓 AI 回客戶。</p>
+            </div>
+          </div>
+          <div class="handoff-step">
+            <div class="handoff-step-number">5</div>
+            <div>
+              <h3>客服從後台回 LINE</h3>
+              <p>真人在客服後台輸入回覆，系統用 LINE Reply / Push API 以 OA 身分回給客戶；結案後再切回 AI。</p>
+            </div>
+          </div>
+        </div>
+
+        <aside class="agent-console" aria-label="客服後台案件示意">
+          <div class="console-header">
+            <h3>客服後台看到的案件</h3>
+            <span class="status-pill">human_pending</span>
+          </div>
+          <div class="console-row">
+            <span>客戶訊息</span>
+            <strong>「我要退款，這個商品跟說明不一樣。」</strong>
+          </div>
+          <div class="console-row">
+            <span>轉接原因</span>
+            <strong>退款 + 客訴，高風險，AI 不應自行承諾處理結果。</strong>
+          </div>
+          <div class="console-row">
+            <span>建議部門</span>
+            <strong>客服 Team，必要時轉財務或主管審核。</strong>
+          </div>
+          <div class="console-row">
+            <span>AI 摘要</span>
+            <strong>客戶對商品描述不滿，要求退款；尚未確認訂單編號與購買日期。</strong>
+          </div>
+          <div class="console-row">
+            <span>下一步</span>
+            <strong>客服要求訂單編號、照片或購買紀錄，再依退款 SOP 處理。</strong>
+          </div>
+        </aside>
+      </div>
+
+      <div class="audit-layout">
+        <div class="audit-panel">
+          <h3>Audit log 要做在哪裡？</h3>
+          <p>
+            建議放在後台的「稽核紀錄 / Audit」頁，也可以嵌在每個 conversation 或 ticket 的右側時間軸。它不是給客戶看的，而是給客服主管、營運、工程與稽核人員追查用。
+          </p>
+          <ul class="list">
+            <li>客服主管：檢查 AI 是否太早轉真人或錯誤回答。</li>
+            <li>營運 / PM：分析哪些 SOP 不足、哪些問題最常被問。</li>
+            <li>工程：debug routing、RAG 命中、tool call 失敗。</li>
+            <li>稽核 / 管理者：確認誰在什麼時間做了什麼操作。</li>
+          </ul>
+        </div>
+
+        <div class="audit-panel">
+          <h3>一筆案件的稽核時間軸</h3>
+          <div class="audit-event">
+            <div class="audit-time">14:03</div>
+            <div><strong>Inbound message</strong><span>客戶傳入：「我要退款」。儲存 raw LINE payload。</span></div>
+          </div>
+          <div class="audit-event">
+            <div class="audit-time">14:03</div>
+            <div><strong>Supervisor decision</strong><span>intent = human_handoff，risk = high，reason = refund complaint。</span></div>
+          </div>
+          <div class="audit-event">
+            <div class="audit-time">14:03</div>
+            <div><strong>Ticket created</strong><span>建立 ticket #1042，priority = high，assigned_team = support。</span></div>
+          </div>
+          <div class="audit-event">
+            <div class="audit-time">14:04</div>
+            <div><strong>Status changed</strong><span>conversation 從 ai_active 改成 human_pending，AI 自動回覆暫停。</span></div>
+          </div>
+          <div class="audit-event">
+            <div class="audit-time">14:18</div>
+            <div><strong>Human reply</strong><span>客服 Terrel 透過後台回覆客戶，訊息同步寫入 messages。</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Design Choice</p>
+          <h2>RAG Bot 和 Agentic Workflow 的差別</h2>
+        </div>
+        <p>
+          RAG bot 解決的是「回答準不準」；agentic workflow 解決的是「事情能不能被安全地完成」。兩者不是互斥，正式系統通常會同時需要。
+        </p>
+      </div>
+
+      <div class="comparison">
+        <div class="compare-panel">
+          <h3><span class="dot"></span>RAG 客服</h3>
+          <ul class="list">
+            <li>適合 FAQ、SOP、產品規格、政策說明</li>
+            <li>主要能力是搜尋文件並整理回答</li>
+            <li>風險較低，MVP 可以很快上線</li>
+            <li>找不到資料時轉真人</li>
+          </ul>
+        </div>
+        <div class="compare-panel">
+          <h3><span class="dot warn"></span>Agentic Workflow</h3>
+          <ul class="list">
+            <li>適合加入購物車、預約、購票、查訂單</li>
+            <li>主要能力是判斷流程並呼叫 tools</li>
+            <li>需要 conversation state、confirmation gate、audit log</li>
+            <li>高風險操作預設轉真人或二次確認</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="roadmap">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Build Roadmap</p>
+          <h2>建置順序：先做可靠的一條流程，再擴成 agent team</h2>
+        </div>
+        <p>
+          第一版不要追求全自動。先選一個明確 action，例如加入購物車或預約球場，跑通 LINE 對話、工具呼叫與確認流程。
+        </p>
+      </div>
+
+      <div class="timeline">
+        <article class="phase">
+          <small>Phase 1</small>
+          <h3>LINE Webhook + Log</h3>
+          <p>建立 Messaging API webhook、驗證 signature，將每則訊息寫入 Supabase，形成可追蹤的 conversation history。</p>
+        </article>
+        <article class="phase">
+          <small>Phase 2</small>
+          <h3>Intent Router + RAG</h3>
+          <p>實作 Supervisor classifier，將 FAQ 類問題 route 到 Knowledge Agent，先讓系統能穩定根據文件回答。</p>
+        </article>
+        <article class="phase">
+          <small>Phase 3</small>
+          <h3>One Action Tool</h3>
+          <p>先接一個 action，例如 `addToCart` 或 `createBooking`，用固定 workflow 管理缺少資訊、確認與執行。</p>
+        </article>
+        <article class="phase">
+          <small>Phase 4</small>
+          <h3>Handoff + Dashboard</h3>
+          <p>加入真人接手、ticket 指派、AI 停止自動回覆、客服後台與操作紀錄，讓系統可以正式營運。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="guardrails">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Guardrails</p>
+          <h2>真正的安全感來自流程，而不是 prompt 寫得很嚴格</h2>
+        </div>
+        <p>
+          Prompt 可以提醒 agent，但不能取代權限、狀態機、工具 schema、審計紀錄與人工接手。下面這些規則應該寫在系統層。
+        </p>
+      </div>
+
+      <div class="guardrails">
+        <div class="rule-box">
+          <div class="rule">
+            <div class="rule-icon">1</div>
+            <div>
+              <h3>工具白名單</h3>
+              <p>Agent 只能呼叫你定義好的 tools，不能直接改 database，也不要自由操作第三方網站。</p>
+            </div>
+          </div>
+          <div class="rule">
+            <div class="rule-icon">2</div>
+            <div>
+              <h3>確認閘門</h3>
+              <p>加入購物車、建立預約、購票、付款、取消訂單等動作，必須先向客戶確認。</p>
+            </div>
+          </div>
+          <div class="rule">
+            <div class="rule-icon">3</div>
+            <div>
+              <h3>人工接手</h3>
+              <p>退款、客訴、法律、合約、付款失敗、低信心回答，直接建立 ticket 並停止 AI 自動回覆。</p>
+            </div>
+          </div>
+          <div class="rule">
+            <div class="rule-icon">4</div>
+            <div>
+              <h3>Audit Log</h3>
+              <p>每次 tool call 都要記錄 input、output、使用者確認內容、執行結果與負責 agent。</p>
+            </div>
+          </div>
+        </div>
+
+        <pre class="code-block"><code>if (conversation.status === "human_active") {
+  return notifyAssignedAgent(message)
+}
+
+const route = await supervisor.classify(message)
+
+if (route.risk === "high") {
+  return createHumanTicket(route.reason)
+}
+
+if (route.intent === "faq_question") {
+  return knowledgeAgent.answerWithRag(message)
+}
+
+if (route.requiresAction) {
+  const draft = await transactionAgent.prepare(route)
+  return askForConfirmation(draft)
+}
+
+if (userConfirmedPendingAction(message)) {
+  return executeApprovedTool(conversation.pendingAction)
+}</code></pre>
+      </div>
+    </section>
+
+    <section class="section" id="appendix">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Appendix</p>
+          <h2>真正影響成敗的，是使用者體驗與案件管理</h2>
+        </div>
+        <p>
+          Agentic workflow 不只是技術架構。使用者感受到的速度、清楚度、控制感，以及內部能不能把真人接手管理好，會直接決定這套系統能不能正式營運。
+        </p>
+      </div>
+
+      <div class="appendix-grid">
+        <article class="appendix-card">
+          <h3>附錄 A：使用者體驗與反應速度</h3>
+          <p>
+            LINE 對話最怕讓客戶等在黑洞裡。最好的體驗不是每個任務都 1 秒完成，而是 1 秒內讓使用者知道系統正在處理，並且每一步都清楚告訴他下一步是什麼。
+          </p>
+
+          <div class="experience-flow" aria-label="使用者體驗速度目標">
+            <div class="experience-step">
+              <div class="experience-time">0-1 秒</div>
+              <div><strong>立即回饋</strong><span>顯示 loading animation，或先回「我先幫你查」。</span></div>
+            </div>
+            <div class="experience-step">
+              <div class="experience-time">1-3 秒</div>
+              <div><strong>完成 routing</strong><span>用 hard rules + 輕量 classifier 判斷 FAQ、購物、預約或轉真人。</span></div>
+            </div>
+            <div class="experience-step">
+              <div class="experience-time">3-5 秒</div>
+              <div><strong>給選項或結論</strong><span>回覆簡短結論、quick replies、可預約時段或商品選項。</span></div>
+            </div>
+            <div class="experience-step">
+              <div class="experience-time">5 秒以上</div>
+              <div><strong>分段處理</strong><span>先告知「仍在查詢」，完成後再 push 結果，不讓客戶以為系統壞了。</span></div>
+            </div>
+          </div>
+
+          <ul class="list">
+            <li>常見 FAQ、保固、營業時間、付款方式可以 cache。</li>
+            <li>文件 embedding 必須預先建立，runtime 只做 retrieval。</li>
+            <li>RAG、客戶資料、商品庫存可平行查詢，不要排隊做。</li>
+            <li>LINE 回覆要短，複雜流程用按鈕與選項降低輸入成本。</li>
+          </ul>
+        </article>
+
+        <article class="appendix-card">
+          <h3>附錄 B：真人客服需要 Ticket 系統</h3>
+          <p>
+            如果真人客服只是偶爾看 LINE OA，可以先手動處理；但只要你希望 AI 正式轉真人、指派客服、追蹤處理進度，就需要 ticket / case management。它可以先很輕量，不一定一開始就導入大型客服平台。
+          </p>
+
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>沒有 Ticket</th>
+                <th>有 Ticket</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>客服不知道哪些案件待處理。</td>
+                <td>每筆轉真人都有 open / assigned / resolved 狀態。</td>
+              </tr>
+              <tr>
+                <td>多位客服可能重複回覆同一位客戶。</td>
+                <td>可以指派 owner、team、priority 與 SLA。</td>
+              </tr>
+              <tr>
+                <td>AI 不知道何時該停止或恢復自動回覆。</td>
+                <td>`conversation.status` 控制 AI 是否可以回覆。</td>
+              </tr>
+              <tr>
+                <td>主管難以追查客訴、退款、付款爭議。</td>
+                <td>ticket 詳情頁保留對話、摘要、回覆與 audit timeline。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <ul class="list">
+            <li>MVP 可先自建 `tickets` table，不必一開始買 Zendesk 或 Intercom。</li>
+            <li>最小後台需要案件列表、案件詳情、客服回覆框、結案按鈕。</li>
+            <li>未來若已有 CRM /客服平台，可把 `createHumanTicket` tool 改成串接外部系統。</li>
+            <li>真人接手時，客戶端仍只看到 LINE OA；內部才看到指派與處理流程。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div>
+        <h2>建議第一版只做一個可控任務</h2>
+        <p>
+          最好的 MVP 是「LINE 問答 + 文件 RAG + 一個 action tool + 明確確認 + 真人接手」。這條路跑穩後，再擴到購票、預約、訂單查詢與更多 agent。
+        </p>
+      </div>
+      <a class="button primary" href="#top">回到架構總覽</a>
+    </section>
+  </main>
+</body>
+</html>
