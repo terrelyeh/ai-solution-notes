@@ -111,13 +111,13 @@ Multi-agent, only if needed
 
 ### Related Technical Background
 
-這兩份 EnGenie 文件是本案的技術地基，但不應取代本規格：
+這兩份同 repo 的背景文件是本案的技術地基，但不應取代本規格：
 
-- [單一 Agent 架構：從純 RAG 到工具導向 Agent](https://engenie-eg.vercel.app/docs/agent-architecture.html)
+- [單一 Agent 架構：從純 RAG 到工具導向 Agent](../single-agent-tool-calling/)
   - 對應本案 Phase 1。
   - 重點是 RAG 只是 tool 之一，不是固定主流程。
   - LLM 透過 tool calling 決定查文件、查 API 或執行工具。
-- [多 Agent 架構：Multi-Agent](https://engenie-eg.vercel.app/docs/multi-agent-architecture.html)
+- [多 Agent 架構：Multi-Agent](../multi-agent-architecture/)
   - 對應本案 Phase 3。
   - 重點是何時才需要拆 agent，以及 supervisor / agent-as-tool / pipeline / handoff 等 topology。
   - 在本案中，只有當工具太多或風險邊界變複雜時才採用。

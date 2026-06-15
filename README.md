@@ -9,6 +9,8 @@ This repository collects research reports for product, architecture, and enginee
 | Report | Web Page | Spec |
 |---|---|---|
 | LINE OA Agentic Workflow | [Open report](./reports/line-oa-agentic-workflow/) | [spec.md](./reports/line-oa-agentic-workflow/spec.md) |
+| Single Agent Tool Calling | [Open report](./reports/single-agent-tool-calling/) | [spec.md](./reports/single-agent-tool-calling/spec.md) |
+| Multi-Agent Architecture | [Open report](./reports/multi-agent-architecture/) | [spec.md](./reports/multi-agent-architecture/spec.md) |
 
 ## Report Structure
 
@@ -30,4 +32,3 @@ reports/<topic-slug>/
 3. Produce a Markdown spec for AI coding agents or engineering follow-up.
 4. Add the report to the root `index.html` and this `README.md`.
 5. Publish with GitHub Pages.
-

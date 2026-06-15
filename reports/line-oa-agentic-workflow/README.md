@@ -23,6 +23,5 @@ This report explains how to build a LINE Official Account AI assistant that can 
 
 ## Related Background
 
-- [Single Agent Architecture](https://engenie-eg.vercel.app/docs/agent-architecture.html): tool calling, agent loop, and RAG as one tool.
-- [Multi-Agent Architecture](https://engenie-eg.vercel.app/docs/multi-agent-architecture.html): when to split into multiple agents and how to structure them.
-
+- [Single Agent Tool Calling](../single-agent-tool-calling/): tool calling, agent loop, and RAG as one tool.
+- [Multi-Agent Architecture](../multi-agent-architecture/): when to split into multiple agents and how to structure them.
