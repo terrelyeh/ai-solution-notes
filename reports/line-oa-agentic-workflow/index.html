@@ -1697,7 +1697,7 @@
           <h2>真人接手不是把客服拉進 LINE，而是把對話切到受控客服流程</h2>
         </div>
         <p>
-          客戶端仍然只看到 LINE OA。內部則由系統建立 ticket、通知客服、把 conversation 狀態改成人工接手，並停止 AI 自動回覆。Audit log 則放在後台的稽核紀錄，用來還原「AI 為什麼這樣判斷、誰接手、哪個工具被執行」。
+          客戶端仍然只看到 LINE OA。內部則由系統建立 ticket、通知客服、把該 conversation / session 狀態改成人工接手，並停止該 session 的 AI 自動回覆。其他客戶或其他新 session 仍可照常走預設 AI 客服。Audit log 則放在後台的稽核紀錄，用來還原「AI 為什麼這樣判斷、誰接手、哪個工具被執行」。
         </p>
       </div>
 
@@ -1728,7 +1728,7 @@
             <div class="handoff-step-number">4</div>
             <div>
               <h3>AI 暫停自動回覆</h3>
-              <p>`conversation.status` 從 `ai_active` 改成 `human_pending` 或 `human_active`，後續訊息只通知客服，不再讓 AI 回客戶。</p>
+              <p>`conversation.status` 從 `ai_active` 改成 `human_pending` 或 `human_active`。這個狀態只鎖定該 session；後續同一案件的訊息只通知客服，不再讓 AI 回覆。其他使用者或其他未轉接的 session 仍照常由 AI 處理。</p>
             </div>
           </div>
           <div class="handoff-step">
@@ -1770,6 +1770,18 @@
 
       <div class="audit-layout">
         <div class="audit-panel">
+          <h3>Session-scoped Handoff</h3>
+          <p>
+            轉真人不是把整個 LINE OA 的 AI 關掉，而是把「某個使用者的某個 open conversation」切到真人狀態。Webhook 每次收到訊息時，先查 `line_user_id` 是否有未結案 session；如果該 session 是 `human_active`，就只寫入 ticket 並通知客服。如果沒有 open human session，才進入預設 AI routing。
+          </p>
+          <ul class="list">
+            <li>同一個 handoff session：AI 停止自動回覆，訊息進客服後台。</li>
+            <li>其他新客戶：照常進 AI 客服流程。</li>
+            <li>同一位客戶的新問題：依規則決定沿用真人 session，或建立新的 AI session。</li>
+          </ul>
+        </div>
+
+        <div class="audit-panel">
           <h3>Audit log 要做在哪裡？</h3>
           <p>
             建議放在後台的「稽核紀錄 / Audit」頁，也可以嵌在每個 conversation 或 ticket 的右側時間軸。它不是給客戶看的，而是給客服主管、營運、工程與稽核人員追查用。
@@ -1798,7 +1810,7 @@
           </div>
           <div class="audit-event">
             <div class="audit-time">14:04</div>
-            <div><strong>Status changed</strong><span>conversation 從 ai_active 改成 human_pending，AI 自動回覆暫停。</span></div>
+            <div><strong>Status changed</strong><span>conversation 從 ai_active 改成 human_pending；只有該 session 的 AI 自動回覆暫停。</span></div>
           </div>
           <div class="audit-event">
             <div class="audit-time">14:18</div>
@@ -1919,7 +1931,8 @@
           </div>
         </div>
 
-        <pre class="code-block"><code>if (conversation.status === "human_active") {
+        <pre class="code-block"><code>// Session-scoped handoff: only this conversation is locked to human support.
+if (conversation.status === "human_active") {
   return notifyAssignedAgent(message)
 }
 
@@ -2027,6 +2040,7 @@ if (userConfirmedPendingAction(message)) {
             <li>最小後台需要案件列表、案件詳情、客服回覆框、結案按鈕。</li>
             <li>未來若已有 CRM /客服平台，可把 `createHumanTicket` tool 改成串接外部系統。</li>
             <li>真人接手時，客戶端仍只看到 LINE OA；內部才看到指派與處理流程。</li>
+            <li>handoff 狀態應該綁定 conversation / session，不是讓整個 LINE OA 的 AI 客服全域停用。</li>
           </ul>
         </article>
       </div>
