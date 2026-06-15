@@ -407,6 +407,136 @@
       gap: 18px;
     }
 
+    .stance-board {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .stance-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, .75fr);
+      gap: 22px;
+      padding: 28px;
+      background: linear-gradient(135deg, #ffffff, #eef8f2);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stance-hero h3 {
+      font-size: clamp(24px, 4vw, 38px);
+      margin-bottom: 10px;
+    }
+
+    .stance-hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+      text-wrap: pretty;
+    }
+
+    .stance-label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: var(--green);
+      color: white;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .stance-stack {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .stance-chip {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #dce9e1;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .stance-chip b {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #e7f8ed;
+      color: var(--green-deep);
+      font-size: 13px;
+    }
+
+    .stance-chip span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .stance-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+
+    .stance-column {
+      padding: 22px;
+      border-right: 1px solid var(--line);
+    }
+
+    .stance-column:last-child {
+      border-right: 0;
+    }
+
+    .stance-column h3 {
+      font-size: 19px;
+      margin-bottom: 10px;
+    }
+
+    .stance-column p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .link-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .link-card {
+      display: block;
+      padding: 14px;
+      border: 1px solid #dce9e1;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .link-card strong {
+      display: block;
+      color: var(--green-deep);
+      margin-bottom: 4px;
+    }
+
+    .link-card span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
     .card {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -946,6 +1076,7 @@
     @media (max-width: 980px) {
       .hero,
       .section-header,
+      .stance-hero,
       .guardrails,
       .handoff-layout,
       .audit-layout,
@@ -973,9 +1104,19 @@
       }
 
       .grid-3,
+      .stance-columns,
       .timeline,
       .comparison {
         grid-template-columns: 1fr;
+      }
+
+      .stance-column {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .stance-column:last-child {
+        border-bottom: 0;
       }
 
       .nav-links {
@@ -1036,6 +1177,7 @@
         <div class="nav-links">
           <a href="#flow">流程</a>
           <a href="#agents">Agent Team</a>
+          <a href="#stance">實作定位</a>
           <a href="#routing">Routing</a>
           <a href="#handoff">Handoff</a>
           <a href="#roadmap">Roadmap</a>
@@ -1189,6 +1331,109 @@
             <li>工具失敗或付款相關問題轉真人</li>
           </ul>
         </article>
+      </div>
+    </section>
+
+    <section class="section" id="stance">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Implementation Stance</p>
+          <h2>第一版不要真的做成 multiple agents，而是 single orchestrator + tools</h2>
+        </div>
+        <p>
+          這份文件使用 Supervisor、Knowledge、Transaction 三個名稱，是為了說清楚責任邊界；但第一版實作不建議直接做成三個獨立 agent runtime。比較穩的落地方式是先用一個 Orchestrator Agent 控制流程，下面掛多個受控 tools。
+        </p>
+      </div>
+
+      <div class="stance-board">
+        <div class="stance-hero">
+          <div>
+            <span class="stance-label">Recommended MVP</span>
+            <h3>產品上看起來像 agent team，工程上先做單一 Orchestrator</h3>
+            <p>
+              對使用者來說，系統能查文件、查商品、加入購物車、預約、轉真人，像是一個有多種能力的 AI assistant。對工程來說，第一版應該是一個主控 agent / workflow engine，負責 routing、狀態機、確認閘門與 handoff，再呼叫 RAG、交易、ticket 等 tools。
+            </p>
+          </div>
+
+          <div class="stance-stack" aria-label="MVP 架構重點">
+            <div class="stance-chip">
+              <b>1</b>
+              <span><strong>Single Orchestrator</strong><br>判斷 intent、管理 workflow state、決定下一步。</span>
+            </div>
+            <div class="stance-chip">
+              <b>2</b>
+              <span><strong>Tools First</strong><br>RAG、商品、購物車、預約、ticket 都先做成 tools。</span>
+            </div>
+            <div class="stance-chip">
+              <b>3</b>
+              <span><strong>Multi-agent-ready</strong><br>介面預留未來拆成 Knowledge / Transaction / Support agents。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stance-columns">
+          <div class="stance-column">
+            <h3>Phase 1：Single agent + tools</h3>
+            <p>
+              一個 Orchestrator Agent 搭配 hard rules、lightweight classifier、RAG tool、one action tool、handoff tool。這是外包開發的第一版主規格。
+            </p>
+            <ul class="list">
+              <li>速度較快，debug 較容易。</li>
+              <li>不會一開始就產生多 agent 溝通成本。</li>
+              <li>適合先驗證 LINE OA 使用者體驗。</li>
+            </ul>
+          </div>
+
+          <div class="stance-column">
+            <h3>Phase 2：更多 tools 與流程</h3>
+            <p>
+              擴充 booking、cart、order lookup、customer profile、notification、audit。仍可維持單一 Orchestrator，只要 tools schema 與 workflow state 設計清楚。
+            </p>
+            <ul class="list">
+              <li>每個 tool 都有 schema、權限、audit log。</li>
+              <li>高風險 tool 一律走 confirmation gate。</li>
+              <li>真人接手透過 ticket / case management。</li>
+            </ul>
+          </div>
+
+          <div class="stance-column">
+            <h3>Phase 3：需要時才拆 multi-agent</h3>
+            <p>
+              當工具太多、選錯率上升、不同任務需要不同 system prompt 或安全邊界，才把模組拆成真正獨立的 agents。
+            </p>
+            <ul class="list">
+              <li>Knowledge Agent：低風險文件問答。</li>
+              <li>Transaction Agent：交易 / 預約工具。</li>
+              <li>Support Agent：真人接手與案件摘要。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="audit-layout">
+        <div class="audit-panel">
+          <h3>給外包開發的正確說法</h3>
+          <p>
+            不要一開始寫「請開發 multi-agent 系統」。比較準確的規格是：「請開發 LINE OA Agentic Workflow 系統；第一版採用 single orchestrator agent + tool-calling architecture，並預留未來拆成 multi-agent 的介面。」
+          </p>
+        </div>
+
+        <div class="audit-panel">
+          <h3>Related Technical Background</h3>
+          <p>
+            下面兩份 EnGenie 文件是這個 LINE OA 外包案的技術地基：單一 agent 文件說明 tool calling / agent loop；multi-agent 文件說明何時需要拆成多 agent。
+          </p>
+          <div class="link-list">
+            <a class="link-card" href="https://engenie-eg.vercel.app/docs/agent-architecture.html">
+              <strong>單一 Agent 架構：從純 RAG 到工具導向 Agent</strong>
+              <span>對應本案 Phase 1：RAG 是一個 tool，不是固定主流程；LLM 透過 tool calling 選擇查文件或執行工具。</span>
+            </a>
+            <a class="link-card" href="https://engenie-eg.vercel.app/docs/multi-agent-architecture.html">
+              <strong>多 Agent 架構：何時拆、怎麼拆</strong>
+              <span>對應本案 Phase 3：當工具太多、風險邊界不同或需要專長分工時，再拆成真正的 multi-agent。</span>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
 

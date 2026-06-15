@@ -24,9 +24,9 @@
 - LINE Messaging API webhook
 - 驗證 LINE signature
 - 儲存 conversation 與 messages
-- Supervisor Agent：intent routing 與流程狀態管理
-- Knowledge Agent：RAG 查詢 SOP / FAQ / 產品文件
-- Transaction Agent：先支援一個 action tool，例如 `addToCart`
+- Single Orchestrator / Supervisor：intent routing 與流程狀態管理
+- Knowledge capability：先以 RAG tool 實作 SOP / FAQ / 產品文件查詢
+- Transaction capability：先以 action tool 實作，例如 `addToCart`
 - Confirmation Gate：狀態變更前要求使用者確認
 - Human Handoff：建立 ticket，停止 AI 自動回覆
 - Supabase 作為 database、storage、pgvector
@@ -62,6 +62,66 @@ flowchart LR
   Reply --> User
 ```
 
+## 3.1 Implementation Stance：先 Single Agent，後 Multi-Agent
+
+這個 LINE OA 建置計畫的終態可以演進成 multiple agents，但第一版不應直接開發成多個獨立 agent runtime。建議採用：
+
+```text
+Phase 1:
+Single Orchestrator Agent
++ RAG tool
++ Transaction tools
++ Handoff tool
++ Audit log
+
+Phase 2:
+Single Orchestrator
++ More tools
++ richer workflow state
++ admin dashboard
+
+Phase 3:
+Multi-agent, only if needed
++ Supervisor Agent
++ Knowledge Agent
++ Transaction Agent
++ Support / Handoff Agent
+```
+
+給外包或 AI coding agent 的正確表述：
+
+```text
+請開發一個 LINE OA Agentic Workflow 系統。
+第一版採用 single orchestrator agent + tool-calling architecture。
+系統需預留未來拆成 multi-agent 的介面。
+```
+
+不要一開始寫成「請開發 multi-agent 系統」，否則容易導致過度設計、工期拉長、debug 困難、成本增加，以及使用者體驗變慢。
+
+### 什麼時候才拆成真正 Multi-Agent
+
+只有出現以下痛點時，才把角色拆成多個獨立 agents：
+
+- 工具太多，單一 orchestrator 經常選錯 tool。
+- 不同任務需要完全不同的 system prompt。
+- 交易、預約、客服接手流程變得很複雜。
+- 某些任務需要不同模型或不同安全邊界。
+- 需要平行處理多個子任務。
+- 高風險能力需要隔離，例如交易 / 付款 / 內部系統操作。
+
+### Related Technical Background
+
+這兩份 EnGenie 文件是本案的技術地基，但不應取代本規格：
+
+- [單一 Agent 架構：從純 RAG 到工具導向 Agent](https://engenie-eg.vercel.app/docs/agent-architecture.html)
+  - 對應本案 Phase 1。
+  - 重點是 RAG 只是 tool 之一，不是固定主流程。
+  - LLM 透過 tool calling 決定查文件、查 API 或執行工具。
+- [多 Agent 架構：Multi-Agent](https://engenie-eg.vercel.app/docs/multi-agent-architecture.html)
+  - 對應本案 Phase 3。
+  - 重點是何時才需要拆 agent，以及 supervisor / agent-as-tool / pipeline / handoff 等 topology。
+  - 在本案中，只有當工具太多或風險邊界變複雜時才採用。
+
 ## 4. 推薦 Tech Stack
 
 - Frontend / Admin：Next.js + React + TypeScript
@@ -74,6 +134,8 @@ flowchart LR
 - Notification：Slack、Email、LINE 內部通知 bot 任一
 
 ## 5. Agent Team
+
+本章的 `Supervisor Agent`、`Knowledge Agent`、`Transaction Agent` 是責任邊界。MVP 可以先實作成一個 Orchestrator service 裡的模組與 tools，不必拆成三個獨立 agent runtime。
 
 ### 5.1 Supervisor Agent
 
@@ -749,15 +811,16 @@ conversation.status = resolved
 1. 建立 LINE OA webhook 與 signature 驗證。
 2. 建立 Supabase schema：conversations、messages、workflow_states。
 3. 實作 message logging。
-4. 實作 Supervisor intent classifier。
+4. 實作 single Orchestrator service 與 Supervisor intent classifier。
 5. 建立 documents、document_chunks 與 RAG pipeline。
-6. 實作 Knowledge Agent。
+6. 實作 Knowledge capability，MVP 先做成 `searchKnowledgeBase` tool。
 7. 實作一個 Transaction tool，例如 `addToCart`。
 8. 實作 confirmation gate。
 9. 實作 human handoff 與 tickets。
 10. 加入 admin dashboard。
 11. 加入 eval tests。
 12. 擴充 booking、ticket purchase、order lookup。
+13. 只有在工具與流程複雜度明顯上升後，才拆成真正 multi-agent runtime。
 
 ## 17. 開發時的關鍵限制
 
@@ -776,12 +839,14 @@ conversation.status = resolved
 ```text
 LINE webhook
 → message log
-→ Supervisor routing
-→ Knowledge RAG
+→ single Orchestrator routing
+→ Knowledge RAG tool
 → one Transaction tool
 → confirmation gate
 → human handoff
 ```
+
+MVP 不要直接實作成多個獨立 agents。請先採用 single orchestrator agent + tool-calling architecture，並把 Knowledge、Transaction、Handoff 設計成可被未來抽成 agents 的模組 / tools。
 
 請先產出：
 
