@@ -537,6 +537,47 @@
       font-size: 13px;
     }
 
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .tech-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(28, 55, 39, .07);
+    }
+
+    .tech-card h3 {
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+
+    .tech-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+      text-wrap: pretty;
+    }
+
+    .tech-stack-diagram {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0f2a1d;
+      color: #dff7e6;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      font: 14px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre;
+      margin-bottom: 18px;
+    }
+
     .card {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -1077,6 +1118,7 @@
       .hero,
       .section-header,
       .stance-hero,
+      .tech-grid,
       .guardrails,
       .handoff-layout,
       .audit-layout,
@@ -1178,6 +1220,7 @@
           <a href="#flow">流程</a>
           <a href="#agents">Agent Team</a>
           <a href="#stance">實作定位</a>
+          <a href="#technical-architecture">技術架構</a>
           <a href="#routing">Routing</a>
           <a href="#handoff">Handoff</a>
           <a href="#roadmap">Roadmap</a>
@@ -1433,6 +1476,157 @@
               <span>對應本案 Phase 3：當工具太多、風險邊界不同或需要專長分工時，再拆成真正的 multi-agent。</span>
             </a>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="technical-architecture">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Technical Architecture</p>
+          <h2>LINE OA 系統需要後端 server，也需要把資料層拆清楚</h2>
+        </div>
+        <p>
+          這不是純前端網站。LINE webhook、signature 驗證、LLM API key、RAG 查詢、工具執行、ticket、audit log 都應該放在後端。前端主要是客服後台與文件管理介面。
+        </p>
+      </div>
+
+      <div class="tech-stack-diagram" role="img" aria-label="LINE OA 技術架構資料流">LINE OA / Messaging API
+  → Webhook Backend
+    → Orchestrator Service
+      → Router / Workflow State
+      → RAG Retriever
+      → Tool Executor
+      → Human Handoff
+    → Database / Vector DB / Storage / Queue
+  → LINE Reply or Push API</div>
+
+      <div class="tech-grid">
+        <article class="tech-card">
+          <h3>後端 Server：必要</h3>
+          <p>
+            LINE 會把使用者訊息送到你的 webhook，所以一定要有可公開存取的 HTTPS endpoint。它負責驗證 LINE signature、儲存訊息、呼叫 Orchestrator、保護 LLM API key，並透過 LINE Reply / Push API 回覆。
+          </p>
+          <ul class="list">
+            <li>推薦：Next.js Route Handler / API Routes。</li>
+            <li>輕量：Cloudflare Workers。</li>
+            <li>大型：NestJS / FastAPI / Express。</li>
+          </ul>
+        </article>
+
+        <article class="tech-card">
+          <h3>主資料庫：Conversation / Ticket / Audit</h3>
+          <p>
+            需要儲存 LINE user、conversation state、messages、tickets、tool calls、audit events。這些是交易與客服流程資料，不適合只放在向量資料庫。
+          </p>
+          <ul class="list">
+            <li>推薦：Supabase Postgres。</li>
+            <li>可選：Neon Postgres、Railway Postgres、PlanetScale。</li>
+            <li>重點：要支援 transaction、關聯查詢、權限控管。</li>
+          </ul>
+        </article>
+
+        <article class="tech-card">
+          <h3>Vector DB：RAG 檢索層</h3>
+          <p>
+            文件不應該每次問答時才丟給模型，而是預先 chunk、embedding、寫入 vector index。使用者提問時，先檢索相關 chunks，再交給 LLM 回答。
+          </p>
+          <ul class="list">
+            <li>推薦：Supabase pgvector，跟主資料庫整合最簡單。</li>
+            <li>可選：Qdrant、Pinecone、Weaviate。</li>
+            <li>MVP：pgvector 足夠，正式大量文件再評估獨立 vector DB。</li>
+          </ul>
+        </article>
+
+        <article class="tech-card">
+          <h3>File Storage：原始文件保存</h3>
+          <p>
+            SOP、PDF、Word、Markdown、Notion 匯出檔需要保存原始檔，方便重新 indexing、版本控管與人工審核。vector chunks 不是原始文件的替代品。
+          </p>
+          <ul class="list">
+            <li>推薦：Supabase Storage。</li>
+            <li>可選：S3、Cloudflare R2、Google Cloud Storage。</li>
+            <li>需要 metadata：部門、分類、版本、狀態、visibility。</li>
+          </ul>
+        </article>
+
+        <article class="tech-card">
+          <h3>Queue / Job：文件處理與慢任務</h3>
+          <p>
+            文件抽文字、chunking、embedding、同步 Notion、重新索引、長時間工具執行，都不應卡在 LINE webhook request 裡。Webhook 應快速回應，再用背景任務處理慢工作。
+          </p>
+          <ul class="list">
+            <li>MVP：Vercel Cron / Supabase Edge Function。</li>
+            <li>進階：QStash、Cloudflare Queues、BullMQ + Redis。</li>
+            <li>重點：LINE 使用者要先得到「我正在處理」的狀態回覆。</li>
+          </ul>
+        </article>
+
+        <article class="tech-card">
+          <h3>Admin UI：文件與客服後台</h3>
+          <p>
+            團隊要上傳 SOP、看 conversation、處理 ticket、人工回覆 LINE、看 audit timeline。沒有後台，真人接手和文件維護會很快失控。
+          </p>
+          <ul class="list">
+            <li>推薦：Next.js admin dashboard。</li>
+            <li>可快速起步：Supabase Auth + 自建簡單列表頁。</li>
+            <li>未來可接：Zendesk、Intercom、Freshdesk、HubSpot。</li>
+          </ul>
+        </article>
+      </div>
+
+      <table class="decision-table" style="margin-top:18px">
+        <thead>
+          <tr>
+            <th>架構選項</th>
+            <th>適合情境</th>
+            <th>優點</th>
+            <th>限制</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Next.js + Supabase + OpenAI</td>
+            <td>MVP 與中小型正式產品</td>
+            <td>開發快、前後台同 repo、Postgres + pgvector + Storage 一起解</td>
+            <td>長任務與高流量 webhook 需要額外 queue 設計</td>
+          </tr>
+          <tr>
+            <td>Cloudflare Workers + Supabase / R2</td>
+            <td>重視低延遲與全球部署</td>
+            <td>Webhook 反應快、成本低、部署簡單</td>
+            <td>複雜後台與 Node 套件相容性要注意</td>
+          </tr>
+          <tr>
+            <td>NestJS / FastAPI + Postgres + Qdrant</td>
+            <td>企業級、複雜 workflow、多人團隊</td>
+            <td>服務邊界清楚、適合複雜權限與背景任務</td>
+            <td>初期工程量較大，不適合快速 PoC</td>
+          </tr>
+          <tr>
+            <td>串接現成客服平台</td>
+            <td>已經有客服流程或 SLA 要求</td>
+            <td>ticket、指派、客服報表現成</td>
+            <td>AI workflow、RAG、tool calling 仍需要自建中介層</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="audit-layout">
+        <div class="audit-panel">
+          <h3>推薦 MVP 技術組合</h3>
+          <p>
+            以你的常用 stack 來看，第一版建議用 Next.js + Supabase + pgvector + Supabase Storage + OpenAI / Claude。這可以最快做出 LINE webhook、RAG、ticket、audit log 與簡單 admin dashboard。
+          </p>
+        </div>
+        <div class="audit-panel">
+          <h3>不要省掉的技術元件</h3>
+          <ul class="list">
+            <li>Webhook signature 驗證：避免偽造 LINE request。</li>
+            <li>Workflow state：避免每次訊息都重新理解上下文。</li>
+            <li>Audit events：追查 AI 判斷、tool call、真人回覆。</li>
+            <li>Queue / background job：避免慢任務拖垮 LINE 回應速度。</li>
+          </ul>
         </div>
       </div>
     </section>

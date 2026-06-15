@@ -133,6 +133,173 @@ Multi-agent, only if needed
 - Queue / Jobs：Supabase Edge Functions、QStash、BullMQ 或 Cloudflare Queues
 - Notification：Slack、Email、LINE 內部通知 bot 任一
 
+## 4.1 技術架構與資料庫選型
+
+LINE OA Agentic Workflow 不是純前端網站，必須有後端 server 或 serverless backend。原因是 LINE Messaging API 會把事件送到 webhook，且系統需要保護 LINE channel secret、LINE access token、LLM API key、資料庫 service role key，以及交易 / ticket / audit 的後端邏輯。
+
+### 必要元件
+
+```text
+LINE OA / Messaging API
+→ Webhook Backend
+  → Signature Verification
+  → Message Logging
+  → Orchestrator Service
+    → Router / Workflow State
+    → RAG Retriever
+    → Tool Executor
+    → Human Handoff
+  → Database / Vector DB / File Storage / Queue
+→ LINE Reply or Push API
+```
+
+### 後端 Server 選項
+
+| 選項 | 適合情境 | 優點 | 注意事項 |
+|---|---|---|---|
+| Next.js Route Handler / API Routes | MVP、中小型正式產品 | 前台、後台、API 同 repo，開發快 | 長任務需要 queue，不要卡 webhook |
+| Cloudflare Workers | 低延遲 webhook、全球部署 | 快、便宜、部署簡單 | Node 套件相容性、複雜後台較不直覺 |
+| NestJS / Express | Node 後端服務 | 結構清楚，適合複雜 service layer | 初期工程量較高 |
+| FastAPI | Python 團隊或 AI pipeline 偏 Python | 文件處理與 ML tooling 友善 | 前端後台通常還要另建 |
+
+建議 MVP：`Next.js + Supabase`。如果 webhook 延遲要求很高，再考慮把 webhook edge layer 放到 Cloudflare Workers。
+
+### 主資料庫
+
+主資料庫負責儲存可交易與可稽核的資料：
+
+- LINE user profile
+- conversations
+- messages
+- workflow_states
+- tickets
+- tool_calls
+- audit_events
+- documents metadata
+
+選項：
+
+| 選項 | 建議程度 | 說明 |
+|---|---:|---|
+| Supabase Postgres | 高 | 同時支援 Postgres、Auth、Storage、pgvector，MVP 最省事 |
+| Neon Postgres | 中 | Serverless Postgres 體驗好，但 Storage / Auth 要另外搭 |
+| Railway Postgres | 中 | 開發快，但正式權限與備援要另評估 |
+| PlanetScale | 中低 | 適合 MySQL 生態，但 RAG / pgvector 整合不如 Postgres 直覺 |
+
+建議：使用 Supabase Postgres。
+
+### Vector DB / RAG
+
+RAG 不應該 runtime 才處理文件。文件 ingestion 應該預先完成：
+
+```text
+文件上傳 / Notion / Obsidian
+→ text extraction
+→ chunking
+→ embedding
+→ vector index
+→ runtime retrieval
+```
+
+選項：
+
+| 選項 | 適合情境 | 優點 | 限制 |
+|---|---|---|---|
+| Supabase pgvector | MVP 到中型文件量 | 跟 Postgres metadata 同庫，開發簡單 | 超大量或高 QPS 可能需要優化 |
+| Qdrant | 文件量較大、需要獨立 vector service | 開源、效能好、metadata filter 清楚 | 需要額外部署與維護 |
+| Pinecone | 想使用 managed vector DB | 維運少、擴充方便 | 成本與 vendor lock-in |
+| Weaviate | 搜尋需求複雜 | 功能完整 | 初期複雜度較高 |
+
+建議 MVP：Supabase pgvector。
+
+### File Storage
+
+原始文件要保存，不能只保存 chunks。
+
+用途：
+
+- 重新 indexing
+- 文件版本控管
+- 人工審核
+- 追查回答來源
+
+選項：
+
+- Supabase Storage：MVP 推薦
+- AWS S3：企業雲端標準
+- Cloudflare R2：成本友善，適合 public assets 或大量檔案
+- Google Cloud Storage：若其他系統在 GCP
+
+### Queue / Background Jobs
+
+LINE webhook 應該快速回應，不應等待慢任務完成。以下任務應進 queue 或 background job：
+
+- 文件文字抽取
+- chunking / embedding
+- Notion / Obsidian sync
+- 重新 indexing
+- 長時間 tool call
+- ticket notification
+- 定期統計與報表
+
+選項：
+
+| 選項 | 適合情境 |
+|---|---|
+| Supabase Edge Functions / Cron | 簡單背景任務 |
+| QStash | Serverless queue，適合 Vercel |
+| Cloudflare Queues | Workers 架構 |
+| BullMQ + Redis | 複雜 job pipeline、自架 Node worker |
+
+MVP 可以先用簡單 background function，但架構上要預留 queue。
+
+### Admin UI / 後台
+
+正式團隊使用時需要後台。最小功能：
+
+- 文件上傳 / reindex
+- 文件分類與狀態
+- conversation list
+- ticket list
+- ticket detail
+- 真人客服回覆框
+- audit timeline
+- routing rule 設定
+
+建議：Next.js admin dashboard + Supabase Auth。
+
+### 推薦 MVP 組合
+
+```text
+Next.js
+→ /api/line/webhook
+→ Orchestrator service
+→ Supabase Postgres
+→ Supabase pgvector
+→ Supabase Storage
+→ OpenAI / Claude adapter
+→ LINE Reply / Push API
+```
+
+此組合最適合第一版，因為它可以用單一 repo 快速完成：
+
+- LINE webhook
+- RAG
+- conversation state
+- ticket
+- audit log
+- admin dashboard
+
+### 不建議省略的技術元件
+
+- LINE signature verification
+- Workflow state
+- Audit events
+- Tool call log
+- Confirmation gate
+- Queue / background job 預留
+- Admin dashboard
+
 ## 5. Agent Team
 
 本章的 `Supervisor Agent`、`Knowledge Agent`、`Transaction Agent` 是責任邊界。MVP 可以先實作成一個 Orchestrator service 裡的模組與 tools，不必拆成三個獨立 agent runtime。
