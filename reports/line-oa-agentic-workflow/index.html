@@ -1484,33 +1484,34 @@
       <div class="section-header">
         <div>
           <p class="section-kicker">Technical Architecture</p>
-          <h2>LINE OA 系統需要後端 server，也需要把資料層拆清楚</h2>
+          <h2>以 Vercel 部署 Next.js 後台與 Webhook，再把資料層交給 Supabase</h2>
         </div>
         <p>
-          這不是純前端網站。LINE webhook、signature 驗證、LLM API key、RAG 查詢、工具執行、ticket、audit log 都應該放在後端。前端主要是客服後台與文件管理介面。
+          這不是純前端網站。Vercel 適合負責 Next.js web app、LINE webhook、API routes、客服後台與短時間 orchestration；Supabase 負責 Postgres、pgvector、Storage、Auth；長時間工作則交給 queue 或 background jobs。
         </p>
       </div>
 
-      <div class="tech-stack-diagram" role="img" aria-label="LINE OA 技術架構資料流">LINE OA / Messaging API
-  → Webhook Backend
-    → Orchestrator Service
+      <div class="tech-stack-diagram" role="img" aria-label="Vercel LINE OA 技術架構資料流">LINE OA / Messaging API
+  → Vercel /api/line/webhook
+    → Orchestrator Service on Next.js
       → Router / Workflow State
       → RAG Retriever
       → Tool Executor
       → Human Handoff
-    → Database / Vector DB / Storage / Queue
+    → Supabase Postgres / pgvector / Storage
+    → Queue or Background Jobs for slow tasks
   → LINE Reply or Push API</div>
 
       <div class="tech-grid">
         <article class="tech-card">
-          <h3>後端 Server：必要</h3>
+          <h3>Vercel Web / API Layer：必要</h3>
           <p>
-            LINE 會把使用者訊息送到你的 webhook，所以一定要有可公開存取的 HTTPS endpoint。它負責驗證 LINE signature、儲存訊息、呼叫 Orchestrator、保護 LLM API key，並透過 LINE Reply / Push API 回覆。
+            LINE 會把使用者訊息送到 webhook，所以一定要有公開 HTTPS endpoint。Vercel 可以部署 Next.js Route Handler，負責驗證 LINE signature、儲存訊息、呼叫 Orchestrator、保護 LLM API key，並透過 LINE Reply / Push API 回覆。
           </p>
           <ul class="list">
-            <li>推薦：Next.js Route Handler / API Routes。</li>
-            <li>輕量：Cloudflare Workers。</li>
-            <li>大型：NestJS / FastAPI / Express。</li>
+            <li>推薦：Vercel + Next.js Route Handler / API Routes。</li>
+            <li>適合：webhook、admin dashboard、短時間 RAG retrieval、建立 ticket。</li>
+            <li>注意：不要在 Vercel request 裡跑大型 PDF parsing 或大量 embedding。</li>
           </ul>
         </article>
 
@@ -1551,13 +1552,14 @@
         </article>
 
         <article class="tech-card">
-          <h3>Queue / Job：文件處理與慢任務</h3>
+          <h3>Queue / Job：補上 Vercel 不適合長任務的部分</h3>
           <p>
-            文件抽文字、chunking、embedding、同步 Notion、重新索引、長時間工具執行，都不應卡在 LINE webhook request 裡。Webhook 應快速回應，再用背景任務處理慢工作。
+            Vercel 很適合 webhook 和短 API，但不應把文件抽文字、chunking、embedding、同步 Notion、重新索引、長時間工具執行卡在 request 裡。Webhook 應快速回應，再把慢工作丟到 queue。
           </p>
           <ul class="list">
-            <li>MVP：Vercel Cron / Supabase Edge Function。</li>
-            <li>進階：QStash、Cloudflare Queues、BullMQ + Redis。</li>
+            <li>MVP：Vercel Cron + Supabase Edge Function。</li>
+            <li>推薦搭配：QStash，適合 Vercel serverless queue。</li>
+            <li>進階：Cloudflare Queues、BullMQ + Redis。</li>
             <li>重點：LINE 使用者要先得到「我正在處理」的狀態回覆。</li>
           </ul>
         </article>
@@ -1586,10 +1588,10 @@
         </thead>
         <tbody>
           <tr>
-            <td>Next.js + Supabase + OpenAI</td>
+            <td>Vercel + Next.js + Supabase + OpenAI</td>
             <td>MVP 與中小型正式產品</td>
-            <td>開發快、前後台同 repo、Postgres + pgvector + Storage 一起解</td>
-            <td>長任務與高流量 webhook 需要額外 queue 設計</td>
+            <td>開發快、GitHub 自動部署、前後台同 repo、Postgres + pgvector + Storage 一起解</td>
+            <td>長任務要丟 queue；大量文件處理不要卡在 Vercel function</td>
           </tr>
           <tr>
             <td>Cloudflare Workers + Supabase / R2</td>
@@ -1616,7 +1618,7 @@
         <div class="audit-panel">
           <h3>推薦 MVP 技術組合</h3>
           <p>
-            以你的常用 stack 來看，第一版建議用 Next.js + Supabase + pgvector + Supabase Storage + OpenAI / Claude。這可以最快做出 LINE webhook、RAG、ticket、audit log 與簡單 admin dashboard。
+            以你的常用 stack 來看，第一版建議用 Vercel + Next.js + Supabase + pgvector + Supabase Storage + OpenAI / Claude。這可以最快做出 LINE webhook、RAG、ticket、audit log 與簡單 admin dashboard。
           </p>
         </div>
         <div class="audit-panel">
